@@ -169,22 +169,21 @@ unsigned int xorshift32(unsigned int *state) {
     return x;
 }
 
-int32_t generateRandomNumber(int min, int max)
+common::uint32_t long_running_program(int n)
 {
-    uint64_t counter;
-    int32_t num;
-    /* Read the clock counter */
-    asm("rdtsc": "=A"(counter));
-
-    /* Use the clock counter as a source of randomness */
-    counter = counter * 1103515245 + 12345;
-    num = (int)(counter / 65536) % (max - min);
-    if (num<0)
-        num+=max;
-    return num+min;
+    int result = 0;
+    for(int i = 0; i < n; ++i)
+    {   
+        for(int j = 0; j < n; ++j)
+        {
+            result += i*j;
+        }
+    }
+    return result;
 }
 
-void collatz(int n) {
+void collatz(int n) 
+{   printf("Collatz with parameter: ");
     printNum(n);
     printf(" : ");
     while (n != 1) {
@@ -207,143 +206,9 @@ void TaskCollatz(){
     sys_exit();
 }
 
-int linear_search(int arr[], int n, int key) {
-    for (int i = 0; i < n; i++) {
-        if (arr[i] == key) {
-            return i;
-        }
-    }
-    return -1;
-}
-
-void TaskLinearSearch(){
-    int arr[] = {10, 20, 30, 50, 60, 80, 100, 110, 130, 170};
-    int n = sizeof(arr) / sizeof(arr[0]);
-    int key = 175;
-    int result = linear_search(arr, n, key);
-    printArray(arr,n);
-    printf("x = ");
-    printNum(key);
-    printf("; Output: ");
-    printNum(result);
-    printf("\n");
-    sys_exit();
-}
-
-int binary_search(int arr[], int left, int right, int key) {
-    while (left <= right) {
-        int mid = left + (right - left) / 2;
-        
-        if (arr[mid] == key) {
-            return mid;
-        }
-        else if (arr[mid] < key) {
-            left = mid + 1;
-        }
-        else {
-            right = mid - 1;
-        }
-    }
-
-    return -1;
-}
-
-void TaskBinarySearch(){
-    int arr[] = {10, 20, 30, 50, 60, 80, 100, 110, 130, 170};
-    int n = sizeof(arr) / sizeof(arr[0]);
-    int key = 110;
-    int result = binary_search(arr, 0, n - 1, key);
-    
-    printArray(arr,n);
-    printf("x = ");
-    printNum(key);
-    printf("; Output: ");
-    printNum(result);
-    printf("\n");
-
-    sys_exit();
-}
-
-void initKernelA()
-{
-    uint32_t pid1=0;
-    uint32_t pid2=0;
-    uint32_t pid3=0;
-    pid1=addTask(TaskBinarySearch);
-    pid2=addTask(TaskLinearSearch);
-    pid3=addTask(TaskCollatz);
-    waitpid(pid3);
-    sys_exit();
-}
-
-void initKernelB(){
-    int randomNumber = generateRandomNumber(1,3);
-    uint32_t pid=0;
-    for(int i=0;i<10;i++){
-        if(randomNumber==1){
-            pid=addTask(TaskBinarySearch);
-        }else if (randomNumber==2)
-        {
-            pid=addTask(TaskLinearSearch);
-        }else{
-            pid=addTask(TaskCollatz);
-        }
-        
-    }
-
-    waitpid(pid);
-    sys_exit();
-}
-
-void initKernelC(){
-    int randomNumber = generateRandomNumber(1,3);
-    int randomNumber2=-1;
-    while((randomNumber2=generateRandomNumber(1,3)) == randomNumber);
-    uint32_t pid=0;
-
-    uint32_t pid2=0;
-
-    for(int i=0;i<3;i++){
-        switch (randomNumber)
-        {
-            case 1:
-                pid2=addTask(TaskBinarySearch);
-            break;
-            case 2:
-                pid2=addTask(TaskLinearSearch);
-            break;
-            case 3:
-                pid2=addTask(TaskCollatz);
-            break;
-            default: break;
-        }
-        
-    }
-    for(int i=0;i<3;i++){
-        switch (randomNumber2)
-        {
-            case 1:
-                pid2=addTask(TaskBinarySearch);
-            break;
-            case 2:
-                pid2=addTask(TaskLinearSearch);
-            break;
-            case 3:
-                pid2=addTask(TaskCollatz);
-            break;
-            default: break;
-        }
-    }
-
-    waitpid(pid);
-    waitpid(pid2);
-    sys_exit();
-}
-
 void forkTestExample()
 {
-
-
+    printf("{{{{{{{{{ Test Fork }}}}}}}}}");
     int parentPID=getPid();
     printf("Parent Pid:");
     printNum(parentPID);
@@ -353,8 +218,9 @@ void forkTestExample()
     if(childPID==0)
     {
         printf("Child Task ");
-        printNum(parentPID);
+        printNum(getPid());
         printf("\n");
+        sys_exit();
     }
     else
     {
@@ -365,17 +231,95 @@ void forkTestExample()
     sys_exit();
 }
 
-void execTestExamle1(){
-    printf("Buradan devam edecek\n");
-    printf("execTestExamle1 "); printNum(getPid()); printf(" finished.\n");
+void strategyOne()
+{
+    int childPID[5];
+    int childCounter = 1;
+    printf("{{{{{{{{{ Test Strategy 1 }}}}}}}}}");
+    printf("\n");
+    int initialPid = getPid();
+    printf("Initial Process PID: ");
+    printNum(initialPid);
+    printf("\n");
+    int collatzTest, longTest;
+    int numForks = 3; // Number of times to fork to create 6 programs
+    for (int i = 0; i < numForks; ++i)
+    {
+        int childPid;
+        int result = fork_with_pid(childPid);
+
+        if (result == 0) 
+        {
+            // This is the child process
+            printNum(i + 1);  
+            printf(". Child Process with");
+            printf(" PID: ");
+            printNum(getPid());
+            printf(" runs collatz");
+            printf("\n");
+            collatzTest = getPid()+5;
+            collatz(collatzTest);
+
+            sys_exit();
+        } 
+        else 
+        {
+            childPID[i] = childCounter++;
+        }
+    }
+
+
+    for(int i = 0; i < numForks; ++i)
+    {
+        int childPid;
+        int result = fork_with_pid(childPid);
+
+        if (result == 0) 
+        {
+            // This is the child process
+            printNum(i + 1);  
+            printf(". Child Process with");
+            printf(" PID: ");
+            printNum(getPid());
+            printf(" runs long running program with ");
+            longTest = 1000 + i;
+            printNum(longTest);
+            printf(" Result:");
+            printNum(long_running_program(longTest));
+            printf("\n");
+
+            sys_exit();
+        } 
+        else 
+        {
+            childPID[i] = childCounter++;
+        }
+    }
+
+    for(int i = 0; i < 6; ++i)
+    {
+        waitpid(childPID[i]);
+    }
+
+    printf("All child process's ended.");
+    printf("\n");
+}
+
+
+void executeThisFunction()
+{
+    printf("Exec System Call Tested with PID: ");
+    printNum(getPid());
+    printf("\n");
     sys_exit();
 }
 
 void execTestExamle()
 {
-    printf("execTestExamle "); printNum(getPid()); printf(" start\n");
-    int exec1=exec(execTestExamle1);
-    printf("execTestExamle "); printNum(getPid()); printf(" finished.\n");
+    printf("Exec syscall is testing with PID: "); 
+    printNum(getPid()); 
+    printf("\n");
+    int exec1 = exec(executeThisFunction);
     sys_exit();
 }
 
@@ -398,26 +342,19 @@ extern "C" void kernelMain(const void* multiboot_structure, uint32_t /*multiboot
     GlobalDescriptorTable gdt;
     TaskManager taskManager(&gdt);
 
-    //Task task1(&gdt,initKernelA);
-    //taskManager.AddTask(&task1);
+    // Task taskTestExec(&gdt,execTestExamle);
+    // taskManager.AddTask(&taskTestExec);
 
-    // Task task2(&gdt,initKernelB);
-    // taskManager.AddTask(&task2);
+    // Task taskTestFork(&gdt,forkTestExample);
+    // taskManager.AddTask(&taskTestFork);
 
-    // Task task3(&gdt,initKernelC);
-    // taskManager.AddTask(&task3);
-    
-
-    //Extra Tasks
-
-    // Task task4(&gdt,execTestExamle);
-    // taskManager.AddTask(&task4);
-
-    Task task5(&gdt,forkTestExample);
-    taskManager.AddTask(&task5);
+    Task taskStrategyOne(&gdt,strategyOne);
+    taskManager.AddTask(&taskStrategyOne);
     
     InterruptManager interrupts(0x20, &gdt, &taskManager);
     SyscallHandler syscalls(&interrupts, 0x80);
+
+
     // printf("Initializing Hardware, Stage 1\n");
     
     // #ifdef GRAPHICSMODE

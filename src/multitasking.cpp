@@ -165,7 +165,7 @@ common::uint32_t TaskManager::ExecTask(void entrypoint())
 
 bool TaskManager::ExitCurrentTask(){
     tasks[currentTask].taskState=FINISHED;
-    PrintProcessTable();
+    //PrintProcessTable();
     return true;
 }
 
@@ -223,7 +223,8 @@ void TaskManager::PrintProcessTable(){
         printf("\n");
     }
     printf("\n^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
-    for (int i = 0; i < 10000000; i++){
+    for (int i = 0; i < 10000000; i++)
+    {
         printf("");
     }
     
@@ -231,11 +232,20 @@ void TaskManager::PrintProcessTable(){
 
 CPUState* TaskManager::Schedule(CPUState* cpustate)
 {
+    for (int i = 0; i < 10000000; i++)
+    {
+
+    }
     if(numTasks <= 0)
+    {
         return cpustate;
+    }
+        
     if(currentTask >= 0)
+    {
         tasks[currentTask].cpustate = cpustate;
-    //PrintProcessTable();
+    }
+        
     
     int findTask=(currentTask+1)%numTasks;
     while (tasks[findTask].taskState!=READY)
@@ -263,7 +273,7 @@ CPUState* TaskManager::Schedule(CPUState* cpustate)
     }
 
     currentTask=findTask;
-    // PrintProcessTable();
+    PrintProcessTable();
     return tasks[currentTask].cpustate;
 }
 
