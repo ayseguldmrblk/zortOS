@@ -30,7 +30,7 @@ namespace myos
 
     void fork();
     
-    void fork(int *pid);
+    int fork_with_pid(int pid);
 
     int exec(void entrypoint());
 

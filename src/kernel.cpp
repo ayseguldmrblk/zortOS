@@ -342,25 +342,26 @@ void initKernelC(){
 
 void forkTestExample()
 {
-    int parentPid=getPid();
-    printf("taskC Pid:");
-    printNum(parentPid);
+
+
+    int parentPID=getPid();
+    printf("Parent Pid:");
+    printNum(parentPID);
     printf("\n");
-    int childPid=0;
-    fork(&childPid);
-    if(childPid==0){
-        printf("Parent Task ");
-        printNum(parentPid);
-        printf("\n");
-    }else{
+
+    int childPID = fork_with_pid(getPid());
+    if(childPID==0)
+    {
         printf("Child Task ");
+        printNum(parentPID);
+        printf("\n");
+    }
+    else
+    {
+        printf("Parent Task ");
         printNum(getPid());
         printf("\n");
     }
-
-    printf("taskC End Pid:");
-    printNum(getPid());
-    printf("\n");
     sys_exit();
 }
 
@@ -392,13 +393,13 @@ extern "C" void callConstructors()
 
 extern "C" void kernelMain(const void* multiboot_structure, uint32_t /*multiboot_magic*/)
 {
-    printf("Hello World! --- http://www.AlgorithMan.de\n");
+    printf("-----------------Welcome the ZortOS--------------\n");
 
     GlobalDescriptorTable gdt;
     TaskManager taskManager(&gdt);
 
-    Task task1(&gdt,initKernelA);
-    taskManager.AddTask(&task1);
+    //Task task1(&gdt,initKernelA);
+    //taskManager.AddTask(&task1);
 
     // Task task2(&gdt,initKernelB);
     // taskManager.AddTask(&task2);
@@ -412,8 +413,8 @@ extern "C" void kernelMain(const void* multiboot_structure, uint32_t /*multiboot
     // Task task4(&gdt,execTestExamle);
     // taskManager.AddTask(&task4);
 
-    // Task task5(&gdt,forkTestExample);
-    // taskManager.AddTask(&task5);
+    Task task5(&gdt,forkTestExample);
+    taskManager.AddTask(&task5);
     
     InterruptManager interrupts(0x20, &gdt, &taskManager);
     SyscallHandler syscalls(&interrupts, 0x80);

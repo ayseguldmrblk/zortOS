@@ -72,7 +72,7 @@ common::uint32_t TaskManager::ForkTask(CPUState* cpustate)
 {
     if(numTasks >= 256)
         return 0;
-
+ 
     tasks[numTasks].taskState=READY;
     tasks[numTasks].pPid=tasks[currentTask].pId;
     tasks[numTasks].pId=Task::pIdCounter++;
@@ -80,14 +80,11 @@ common::uint32_t TaskManager::ForkTask(CPUState* cpustate)
     {
         tasks[numTasks].stack[i]=tasks[currentTask].stack[i];
     }
-
-    tasks[numTasks].cpustate = (CPUState*)(tasks[numTasks].stack + 4096 - sizeof(CPUState));
-    
     //Stackten yer alında cpustate'in konumu değişiyor bu nedenle şuanki taskın offsetini hesaplayıp yeni oluşan process'in cpu statenin konumunu ona göre düzenliyorum. Bu işlemi yapmazsam process düzgün şekilde devam etmiyor.
-    common::uint32_t currentTaskOffset=((common::uint32_t)tasks[currentTask].cpustate) - ((common::uint32_t)cpustate);
-
-    tasks[numTasks].cpustate=(CPUState*)(((common::uint32_t)tasks[numTasks].cpustate) - currentTaskOffset);
-    // //Burada ECX' yeni taskın process id'sini atıyorum. Syscall'a return edebilmek için.
+    common::uint32_t currentTaskOffset=(((common::uint32_t)cpustate - (common::uint32_t) tasks[currentTask].stack));
+    tasks[numTasks].cpustate=(CPUState*)(((common::uint32_t) tasks[numTasks].stack) + currentTaskOffset);
+ 
+    //Burada ECX' yeni taskın process id'sini atıyorum. Syscall'a return edebilmek için.
     tasks[numTasks].cpustate->ecx = 0;
     numTasks++;
     return tasks[numTasks-1].pId;
@@ -168,7 +165,7 @@ common::uint32_t TaskManager::ExecTask(void entrypoint())
 
 bool TaskManager::ExitCurrentTask(){
     tasks[currentTask].taskState=FINISHED;
-    // PrintProcessTable();
+    PrintProcessTable();
     return true;
 }
 

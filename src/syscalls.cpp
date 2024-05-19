@@ -37,9 +37,9 @@ void myos::fork()
     asm("int $0x80" :: "a" (SYSCALLS::FORK));
 }
 
-void myos::fork(int *pid)
+int myos::fork_with_pid(int pid)
 {
-    asm("int $0x80" :"=c" (*pid): "a" (SYSCALLS::FORK));
+    asm("int $0x80" :"=c" (pid): "a" (SYSCALLS::FORK));
 }
 
 int myos::exec(void entrypoint())
