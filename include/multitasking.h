@@ -7,7 +7,8 @@
 
 namespace myos
 {
-    namespace hardwarecommunication{
+    namespace hardwarecommunication
+    {
         class InterruptHandler;
     }
     
@@ -56,8 +57,6 @@ namespace myos
             ~Task();
     };
     
-    
-    
     class TaskManager
     {
         friend class hardwarecommunication::InterruptHandler;
@@ -80,11 +79,7 @@ namespace myos
             ~TaskManager();
             bool AddTask(Task *task);
             CPUState* Schedule(CPUState* cpustate);
-    };
-    
-    
-    
+    };    
 }
-
 
 #endif

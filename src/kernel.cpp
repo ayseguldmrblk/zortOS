@@ -185,46 +185,45 @@ common::uint32_t long_running_program(int n)
 void collatz(int n) 
 {   printf("Collatz with parameter: ");
     printNum(n);
-    printf(" : ");
-    while (n != 1) {
-        if (n % 2 == 0) {
+    printf("\n");
+    printf("Result");
+    printf(": ");
+    while (n != 1) 
+    {
+        if (n % 2 == 0) 
+        {
             n /= 2;
         }
-        else {
+        else 
+        {
             n = 3 * n + 1;
         }
         printNum(n);
         printf(" ");
     }
-
     printf("\n");
-}
-
-void TaskCollatz(){
-    int n = 7;
-    collatz(n);
-    sys_exit();
 }
 
 void forkTestExample()
 {
-    printf("{{{{{{{{{ Test Fork }}}}}}}}}");
+    //printf("{{{{{{{{{ Test Fork }}}}}}}}}");
+    //printf("\n");
     int parentPID=getPid();
-    printf("Parent Pid:");
+    printf("Starting with parent pid: ");
     printNum(parentPID);
     printf("\n");
 
     int childPID = fork_with_pid(getPid());
     if(childPID==0)
     {
-        printf("Child Task ");
+        printf("Forked child pid ");
         printNum(getPid());
         printf("\n");
         sys_exit();
     }
     else
     {
-        printf("Parent Task ");
+        printf("Parent pid which should be the same as before: ");
         printNum(getPid());
         printf("\n");
     }
@@ -251,7 +250,7 @@ void strategyOne()
         if (result == 0) 
         {
             // This is the child process
-            printNum(i + 1);  
+            printNum(childCounter);  
             printf(". Child Process with");
             printf(" PID: ");
             printNum(getPid());
@@ -277,14 +276,15 @@ void strategyOne()
         if (result == 0) 
         {
             // This is the child process
-            printNum(i + 1);  
+            printNum(childCounter);  
             printf(". Child Process with");
             printf(" PID: ");
             printNum(getPid());
             printf(" runs long running program with ");
             longTest = 1000 + i;
             printNum(longTest);
-            printf(" Result:");
+            printf("\n");
+            printf("Result:");
             printNum(long_running_program(longTest));
             printf("\n");
 
@@ -301,21 +301,21 @@ void strategyOne()
         waitpid(childPID[i]);
     }
 
-    printf("All child process's ended.");
-    printf("\n");
+    printf("All child processes are ended.");
 }
 
 
 void executeThisFunction()
 {
-    printf("Exec System Call Tested with PID: ");
-    printNum(getPid());
+    printf("Exec System Call Runned Properly!");
     printf("\n");
     sys_exit();
 }
 
 void execTestExamle()
 {
+    //printf("{{{{{{{{{ Test Exec }}}}}}}}}");
+    //printf("\n");
     printf("Exec syscall is testing with PID: "); 
     printNum(getPid()); 
     printf("\n");
@@ -337,16 +337,16 @@ extern "C" void callConstructors()
 
 extern "C" void kernelMain(const void* multiboot_structure, uint32_t /*multiboot_magic*/)
 {
-    printf("-----------------Welcome the ZortOS--------------\n");
+    printf("-----------------Welcome to the ZortOS--------------\n");
 
     GlobalDescriptorTable gdt;
     TaskManager taskManager(&gdt);
 
-    // Task taskTestExec(&gdt,execTestExamle);
-    // taskManager.AddTask(&taskTestExec);
+    //Task taskTestExec(&gdt,execTestExamle);
+    //taskManager.AddTask(&taskTestExec);
 
-    // Task taskTestFork(&gdt,forkTestExample);
-    // taskManager.AddTask(&taskTestFork);
+    //Task taskTestFork(&gdt,forkTestExample);
+    //taskManager.AddTask(&taskTestFork);
 
     Task taskStrategyOne(&gdt,strategyOne);
     taskManager.AddTask(&taskStrategyOne);

@@ -1,37 +1,46 @@
-
 #include <hardwarecommunication/interrupts.h>
+
 using namespace myos;
 using namespace myos::common;
 using namespace myos::hardwarecommunication;
 
-
+// Function declarations
 void printf(char* str);
-void printNum(int);
-void printfHex(uint8_t);
+void printNum(int num);
+void printfHex(uint8_t num);
 
-common::uint32_t InterruptHandler::sys_getpid(){
+// Implementation of system call handlers
+common::uint32_t InterruptHandler::sys_getpid()
+{
     return interruptManager->taskManager->GetPId();
 }
 
-common::uint32_t InterruptHandler::sys_exec(common::uint32_t entrypoint){
+common::uint32_t InterruptHandler::sys_exec(common::uint32_t entrypoint)
+{
     return interruptManager->taskManager->ExecTask((void (*)())entrypoint);
 }
 
-common::uint32_t InterruptHandler::sys_addTask(common::uint32_t entrypoint){
+common::uint32_t InterruptHandler::sys_addTask(common::uint32_t entrypoint)
+{
     return interruptManager->taskManager->AddTask((void (*)())entrypoint);
 }
 
-common::uint32_t InterruptHandler::sys_fork(CPUState* cpustate){
+common::uint32_t InterruptHandler::sys_fork(CPUState* cpustate)
+{
     return interruptManager->taskManager->ForkTask(cpustate);
 }
 
-bool InterruptHandler::sys_exit(){
+bool InterruptHandler::sys_exit()
+{
     return interruptManager->taskManager->ExitCurrentTask();
 }
-bool InterruptHandler::sys_waitpid(common::uint32_t pid){
+
+bool InterruptHandler::sys_waitpid(common::uint32_t pid)
+{
     return interruptManager->taskManager->WaitTask(pid);
 }
 
+// InterruptHandler constructor to set up the handler
 InterruptHandler::InterruptHandler(InterruptManager* interruptManager, uint8_t InterruptNumber)
 {
     this->InterruptNumber = InterruptNumber;
@@ -39,43 +48,42 @@ InterruptHandler::InterruptHandler(InterruptManager* interruptManager, uint8_t I
     interruptManager->handlers[InterruptNumber] = this;
 }
 
+// InterruptHandler destructor to clean up the handler
 InterruptHandler::~InterruptHandler()
 {
-    if(interruptManager->handlers[InterruptNumber] == this)
+    if (interruptManager->handlers[InterruptNumber] == this)
         interruptManager->handlers[InterruptNumber] = 0;
 }
 
+// HandleInterrupt function to handle the actual interrupt
 uint32_t InterruptHandler::HandleInterrupt(uint32_t esp)
 {
     return (uint32_t)interruptManager->taskManager->Schedule((CPUState*)esp);
     // return esp;
 }
 
-
-
-
-
+// Definition of the GateDescriptor array for the interrupt descriptor table
 InterruptManager::GateDescriptor InterruptManager::interruptDescriptorTable[256];
+
+// Pointer to the active interrupt manager
 InterruptManager* InterruptManager::ActiveInterruptManager = 0;
 
-
-
-
+// Set up an entry in the interrupt descriptor table
 void InterruptManager::SetInterruptDescriptorTableEntry(uint8_t interrupt,
     uint16_t CodeSegment, void (*handler)(), uint8_t DescriptorPrivilegeLevel, uint8_t DescriptorType)
 {
-    // address of pointer to code segment (relative to global descriptor table)
-    // and address of the handler (relative to segment)
+    // Address of the handler function (split into low and high bits)
     interruptDescriptorTable[interrupt].handlerAddressLowBits = ((uint32_t) handler) & 0xFFFF;
     interruptDescriptorTable[interrupt].handlerAddressHighBits = (((uint32_t) handler) >> 16) & 0xFFFF;
     interruptDescriptorTable[interrupt].gdt_codeSegmentSelector = CodeSegment;
 
+    // Set the access flags
     const uint8_t IDT_DESC_PRESENT = 0x80;
     interruptDescriptorTable[interrupt].access = IDT_DESC_PRESENT | ((DescriptorPrivilegeLevel & 3) << 5) | DescriptorType;
     interruptDescriptorTable[interrupt].reserved = 0;
 }
 
-
+// Constructor to initialize the interrupt manager
 InterruptManager::InterruptManager(uint16_t hardwareInterruptOffset, GlobalDescriptorTable* globalDescriptorTable, TaskManager* taskManager)
     : programmableInterruptControllerMasterCommandPort(0x20),
       programmableInterruptControllerMasterDataPort(0x21),
@@ -87,7 +95,7 @@ InterruptManager::InterruptManager(uint16_t hardwareInterruptOffset, GlobalDescr
     uint32_t CodeSegment = globalDescriptorTable->CodeSegmentSelector();
 
     const uint8_t IDT_INTERRUPT_GATE = 0xE;
-    for(uint8_t i = 255; i > 0; --i)
+    for (uint8_t i = 255; i > 0; --i)
     {
         SetInterruptDescriptorTableEntry(i, CodeSegment, &InterruptIgnore, 0, IDT_INTERRUPT_GATE);
         handlers[i] = 0;
@@ -95,6 +103,7 @@ InterruptManager::InterruptManager(uint16_t hardwareInterruptOffset, GlobalDescr
     SetInterruptDescriptorTableEntry(0, CodeSegment, &InterruptIgnore, 0, IDT_INTERRUPT_GATE);
     handlers[0] = 0;
 
+    // Set up entries for exception handlers
     SetInterruptDescriptorTableEntry(0x00, CodeSegment, &HandleException0x00, 0, IDT_INTERRUPT_GATE);
     SetInterruptDescriptorTableEntry(0x01, CodeSegment, &HandleException0x01, 0, IDT_INTERRUPT_GATE);
     SetInterruptDescriptorTableEntry(0x02, CodeSegment, &HandleException0x02, 0, IDT_INTERRUPT_GATE);
@@ -116,6 +125,7 @@ InterruptManager::InterruptManager(uint16_t hardwareInterruptOffset, GlobalDescr
     SetInterruptDescriptorTableEntry(0x12, CodeSegment, &HandleException0x12, 0, IDT_INTERRUPT_GATE);
     SetInterruptDescriptorTableEntry(0x13, CodeSegment, &HandleException0x13, 0, IDT_INTERRUPT_GATE);
 
+    // Set up entries for hardware interrupt handlers
     SetInterruptDescriptorTableEntry(hardwareInterruptOffset + 0x00, CodeSegment, &HandleInterruptRequest0x00, 0, IDT_INTERRUPT_GATE);
     SetInterruptDescriptorTableEntry(hardwareInterruptOffset + 0x01, CodeSegment, &HandleInterruptRequest0x01, 0, IDT_INTERRUPT_GATE);
     SetInterruptDescriptorTableEntry(hardwareInterruptOffset + 0x02, CodeSegment, &HandleInterruptRequest0x02, 0, IDT_INTERRUPT_GATE);
@@ -133,14 +143,16 @@ InterruptManager::InterruptManager(uint16_t hardwareInterruptOffset, GlobalDescr
     SetInterruptDescriptorTableEntry(hardwareInterruptOffset + 0x0E, CodeSegment, &HandleInterruptRequest0x0E, 0, IDT_INTERRUPT_GATE);
     SetInterruptDescriptorTableEntry(hardwareInterruptOffset + 0x0F, CodeSegment, &HandleInterruptRequest0x0F, 0, IDT_INTERRUPT_GATE);
 
+    // Set up entry for system call interrupt
     SetInterruptDescriptorTableEntry(0x80, CodeSegment, &HandleInterruptRequest0x80, 0, IDT_INTERRUPT_GATE);
 
+    // Initialize the PIC (Programmable Interrupt Controller)
     programmableInterruptControllerMasterCommandPort.Write(0x11);
     programmableInterruptControllerSlaveCommandPort.Write(0x11);
 
-    // remap
+    // Remap the PIC
     programmableInterruptControllerMasterDataPort.Write(hardwareInterruptOffset);
-    programmableInterruptControllerSlaveDataPort.Write(hardwareInterruptOffset+8);
+    programmableInterruptControllerSlaveDataPort.Write(hardwareInterruptOffset + 8);
 
     programmableInterruptControllerMasterDataPort.Write(0x04);
     programmableInterruptControllerSlaveDataPort.Write(0x02);
@@ -148,74 +160,81 @@ InterruptManager::InterruptManager(uint16_t hardwareInterruptOffset, GlobalDescr
     programmableInterruptControllerMasterDataPort.Write(0x01);
     programmableInterruptControllerSlaveDataPort.Write(0x01);
 
+    // Mask all interrupts
     programmableInterruptControllerMasterDataPort.Write(0x00);
     programmableInterruptControllerSlaveDataPort.Write(0x00);
 
+    // Load the interrupt descriptor table
     InterruptDescriptorTablePointer idt_pointer;
-    idt_pointer.size  = 256*sizeof(GateDescriptor) - 1;
-    idt_pointer.base  = (uint32_t)interruptDescriptorTable;
+    idt_pointer.size = 256 * sizeof(GateDescriptor) - 1;
+    idt_pointer.base = (uint32_t)interruptDescriptorTable;
     asm volatile("lidt %0" : : "m" (idt_pointer));
 }
 
+// Destructor to deactivate the interrupt manager
 InterruptManager::~InterruptManager()
 {
     Deactivate();
 }
 
+// Get the hardware interrupt offset
 uint16_t InterruptManager::HardwareInterruptOffset()
 {
     return hardwareInterruptOffset;
 }
 
+// Activate the interrupt manager
 void InterruptManager::Activate()
 {
-    if(ActiveInterruptManager != 0)
+    if (ActiveInterruptManager != 0)
         ActiveInterruptManager->Deactivate();
 
     ActiveInterruptManager = this;
     asm("sti");
 }
 
+// Deactivate the interrupt manager
 void InterruptManager::Deactivate()
 {
-    if(ActiveInterruptManager == this)
+    if (ActiveInterruptManager == this)
     {
         ActiveInterruptManager = 0;
         asm("cli");
     }
 }
 
+// Handle the interrupt
 uint32_t InterruptManager::HandleInterrupt(uint8_t interrupt, uint32_t esp)
 {
-    if(ActiveInterruptManager != 0)
+    if (ActiveInterruptManager != 0)
         return ActiveInterruptManager->DoHandleInterrupt(interrupt, esp);
     return esp;
 }
 
-
+// Actual handling of the interrupt
 uint32_t InterruptManager::DoHandleInterrupt(uint8_t interrupt, uint32_t esp)
 {
-    
-    if(handlers[interrupt] != 0)
+    if (handlers[interrupt] != 0)
     {
         esp = handlers[interrupt]->HandleInterrupt(esp);
     }
-    else if(interrupt != hardwareInterruptOffset)
+    else if (interrupt != hardwareInterruptOffset)
     {
         esp = (uint32_t)taskManager->Schedule((CPUState*)esp);
         // printf("UNHANDLED INTERRUPT 0x");
         // printfHex(interrupt);
     }
     
-    if(interrupt == hardwareInterruptOffset)
+    if (interrupt == hardwareInterruptOffset)
     {
         esp = (uint32_t)taskManager->Schedule((CPUState*)esp);
     }
-    // hardware interrupts must be acknowledged
-    if(hardwareInterruptOffset <= interrupt && interrupt < hardwareInterruptOffset+16)
+    
+    // Acknowledge hardware interrupts
+    if (hardwareInterruptOffset <= interrupt && interrupt < hardwareInterruptOffset + 16)
     {
         programmableInterruptControllerMasterCommandPort.Write(0x20);
-        if(hardwareInterruptOffset + 8 <= interrupt)
+        if (hardwareInterruptOffset + 8 <= interrupt)
             programmableInterruptControllerSlaveCommandPort.Write(0x20);
     }
 
