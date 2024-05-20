@@ -225,6 +225,7 @@ uint32_t InterruptManager::DoHandleInterrupt(uint8_t interrupt, uint32_t esp)
         // printfHex(interrupt);
     }
     
+    // Timer Interrupt 
     if (interrupt == hardwareInterruptOffset)
     {
         esp = (uint32_t)taskManager->Schedule((CPUState*)esp);
