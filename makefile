@@ -26,7 +26,7 @@ objects = obj/loader.o \
 
 run: mykernel.iso
 	(killall VirtualBoxVM && sleep 1) || true
-#	VBoxManage startvm 'MyOS'
+  	VBoxManage startvm 'MyOS'
 
 obj/%.o: src/%.cpp
 	mkdir -p $(@D)
